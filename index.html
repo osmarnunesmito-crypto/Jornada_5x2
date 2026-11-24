@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-tema="claro">
+<head><script src="https://myhub.ia.br/canvas-vendor/tailwind.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Controle de Jornada 5x2 — EC 141/2026 (Offline)</title>
+<meta name="description" content="Ferramenta offline de apoio à adequação e controle de jornada conforme a EC 141/2026.">
+<style>
+  :root[data-tema="claro"]{
+    --bg:#EEF2F8; --card:#FFFFFF; --border:#D8E0EC; --texto:#0A1F44; --suave:#3A4E73; --muted:#75819A;
+    --destaque:#17408F; --destaque2:#0F2E66; --dourado:#B8860B; --dourado-claro:#F2D675;
+    --perigo:#C0392B; --ok:#1F8A4C; --aviso:#D97706;
+    --grad:linear-gradient(135deg,#050D1F 0%,#0F2E66 55%,#17408F 100%);
+    --shadow:0 1px 3px rgba(5,13,31,.08),0 4px 14px rgba(5,13,31,.06);
+  }
+  :root[data-tema="escuro"]{
+    --bg:#050D1F; --card:#0A1F44; --border:#1A3A70; --texto:#FFFFFF; --suave:#B8C7E0; --muted:#8CA0C2;
+    --destaque:#F2D675; --destaque2:#8AA6E8; --dourado:#F2D675; --dourado-claro:#D4AF37;
+    --perigo:#F0655A; --ok:#4ADE80; --aviso:#FBBF24;
+    --grad:linear-gradient(135deg,#050D1F 0%,#0F2E66 100%);
+    --shadow:0 1px 3px rgba(0,0,0,.4),0 4px 14px rgba(0,0,0,.4);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;background:var(--bg);color:var(--texto);font-size:15px;line-height:1.5;min-height:100vh}
+  a{color:var(--destaque)}
+  button{font-family:inherit}
+  :focus-visible{outline:3px solid var(--dourado);outline-offset:2px;border-radius:4px}
+
+  header{
+    background:var(--grad);color:#fff;padding:12px 20px;display:flex;align-items:center;gap:12px;
+    flex-wrap:wrap;box-shadow:var(--shadow);position:sticky;top:0;z-index:20;
+  }
+  header .logo{width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:22px}
+  header h1{margin:0;font-size:1.15rem;line-height:1.2}
+  header .sub{font-size:.72rem;color:#c8d4ea;font-weight:400}
+  header .spacer{flex:1 1 auto}
+  header .hbtn{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:8px;padding:7px 12px;cursor:pointer;font-size:.88rem}
+
+  nav.tabs{display:flex;gap:6px;padding:14px 20px 0;flex-wrap:wrap;max-width:1280px;margin:0 auto}
+  nav.tabs button{
+    display:inline-flex;align-items:center;gap:7px;background:var(--card);color:var(--suave);
+    border:1px solid var(--border);border-radius:999px;padding:8px 14px;cursor:pointer;font-size:.88rem;font-weight:600;transition:all .15s;
+  }
+  nav.tabs button:hover{border-color:var(--destaque);color:var(--destaque)}
+  nav.tabs button.ativo{background:var(--grad);color:#fff;border-color:transparent}
+
+  main{max-width:1280px;margin:0 auto;padding:18px 20px 40px}
+  .view{display:none}
+  .view.ativa{display:block}
+
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:16px;box-shadow:var(--shadow)}
+  .card h2{margin:0 0 12px;font-size:1.1rem;display:flex;align-items:center;gap:8px}
+  .card h3{margin:14px 0 8px;font-size:.95rem;color:var(--suave)}
+
+  .grid{display:grid;gap:14px}
+  .g2{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+  .g3{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+  .g4{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+
+  .stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px}
+  .stat .num{font-size:1.6rem;font-weight:800;color:var(--destaque)}
+  .stat .lbl{color:var(--muted);font-size:.82rem}
+
+  .countdown{background:var(--grad);color:#fff;border-radius:12px;padding:16px;text-align:center}
+  .countdown .cdl{font-size:.78rem;color:#c8d4ea}
+  .countdown .cdn{font-size:1.4rem;font-weight:800;color:var(--dourado-claro)}
+
+  .btn{display:inline-flex;align-items:center;gap:7px;border:1px solid transparent;border-radius:9px;padding:9px 14px;font-size:.9rem;cursor:pointer;font-weight:600;transition:all .15s}
+  .btn:active{transform:scale(.97)}
+  .btn-p{background:linear-gradient(135deg,#0F2E66,#17408F);color:#fff}
+  .btn-p:hover{filter:brightness(1.15)}
+  .btn-d{background:linear-gradient(135deg,#B8860B,#F2D675);color:#0A1F44}
+  .btn-o{background:transparent;color:var(--destaque);border-color:var(--border)}
+  .btn-o:hover{border-color:var(--destaque)}
+  .btn-danger{background:var(--perigo);color:#fff}
+  .btn-sm{padding:5px 9px;font-size:.8rem;border-radius:7px}
+
+  .input,select.input,textarea.input{width:100%;padding:9px 11px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--texto);font-size:.9rem;font-family:inherit}
+  .input:focus{border-color:var(--destaque);outline:none}
+  label.lbl{display:block;font-weight:600;font-size:.82rem;margin:0 0 4px;color:var(--suave)}
+  .row{margin-bottom:11px}
+
+  table{width:100%;border-collapse:collapse;font-size:.87rem}
+  .twrap{overflow-x:auto}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+  th{background:var(--bg);color:var(--suave);font-weight:700;position:sticky;top:0}
+  :root[data-tema="claro"] th{background:#EEF2F8}
+  tr:hover td{background:rgba(23,64,143,.05)}
+
+  .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:.7rem;font-weight:700;white-space:nowrap}
+  .b-ok{background:rgba(31,138,76,.15);color:var(--ok)}
+  .b-warn{background:rgba(217,119,6,.15);color:var(--aviso)}
+  .b-danger{background:rgba(192,57,43,.15);color:var(--perigo)}
+  .b-neutral{background:rgba(100,116,139,.18);color:var(--muted)}
+
+  .aviso{background:rgba(184,134,11,.12);border:1px solid var(--dourado);border-radius:10px;padding:11px 13px;font-size:.85rem;margin-bottom:16px}
+  .aviso strong{color:var(--dourado)}
+
+  .check-item{display:flex;gap:12px;align-items:flex-start;padding:12px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;cursor:pointer;transition:all .15s}
+  .check-item:hover{border-color:var(--destaque)}
+  .check-item input{margin-top:3px;width:18px;height:18px;cursor:pointer}
+  .check-item.done{opacity:.65}
+  .check-item.done .tit{text-decoration:line-through}
+  .check-item .tit{font-weight:700;font-size:.9rem}
+  .check-item .desc{font-size:.8rem;color:var(--muted)}
+  .check-item .lei{font-size:.75rem;color:var(--dourado)}
+
+  progress{width:100%;height:14px;border-radius:999px;appearance:none}
+  progress::-webkit-progress-bar{background:var(--border);border-radius:999px}
+  progress::-webkit-progress-value{background:linear-gradient(90deg,#17408F,#F2D675);border-radius:999px}
+
+  dialog{border:none;border-radius:14px;padding:0;max-width:560px;width:94%;background:var(--card);color:var(--texto);box-shadow:var(--shadow)}
+  dialog::backdrop{background:rgba(5,13,31,.6)}
+  .dlg-body{padding:22px}
+  .dlg-body h2{margin-top:0}
+
+  .toast{position:fixed;bottom:18px;right:18px;z-index:99;padding:12px 16px;border-radius:10px;color:#fff;font-size:.88rem;box-shadow:var(--shadow);display:flex;gap:9px;align-items:center;animation:up .2s}
+  .toast.ok{background:#1F8A4C}.toast.erro{background:#C0392B}.toast.info{background:#17408F}
+  @keyframes up{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:1}}
+
+  footer{color:var(--muted);text-align:center;font-size:.76rem;padding:16px;border-top:1px solid var(--border)}
+
+  .esc-card{border:1px solid var(--border);border-radius:12px;padding:14px;background:var(--card)}
+  .esc-card h4{margin:0 0 4px;font-size:.95rem}
+  .esc-card .meta{font-size:.8rem;color:var(--muted)}
+
+  @media(max-width:640px){main{padding:14px 12px 30px}nav.tabs{gap:5px;padding:12px 12px 0}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">📅</div>
+  <div>
+    <h1>Controle de Jornada 5x2</h1>
+    <span class="sub">EC 141/2026 · off-line · divisor 220→210→200</span>
+  </div>
+  <div class="spacer"></div>
+  <button class="hbtn" id="btnExport" title="Salvar / exportar dados">💾 Backup</button>
+  <button class="hbtn" id="btnTema" title="Alternar tema">🌙</button>
+</header>
+
+<nav class="tabs" id="tabs">
+  <button data-v="dash" class="ativo">📊 Dashboard</button>
+  <button data-v="func">👥 Funcionários</button>
+  <button data-v="ponto">⏱️ Ponto</button>
+  <button data-v="sim">🧮 Simulador</button>
+  <button data-v="check">✅ Adequação</button>
+  <button data-v="legal">⚖️ Regras & Feriados</button>
+  <button data-v="rel">📈 Relatório</button>
+  <button data-v="gloss">📖 Glossário</button>
+</nav>
+
+<main>
+  <!-- DASHBOARD -->
+  <section class="view ativa" id="v-dash">
+    <div class="aviso"><strong>⚠ Aviso:</strong> regras em transição — STF e portarias setoriais podem alterar parâmetros. Itens “A CONFIRMAR” exigem validação jurídica. Ferramenta de apoio, não substitui REP homologado nem assessoria.</div>
+    <div class="grid g2">
+      <div class="countdown"><div class="cdl">16/12/2026 — 42h + 2 repousos + divisor 210</div><div class="cdn" id="cd26">—</div></div>
+      <div class="countdown"><div class="cdl">16/12/2027 — 40h + divisor 200</div><div class="cdn" id="cd27">—</div></div>
+    </div>
+    <div class="grid g4" style="margin-top:14px">
+      <div class="stat"><div class="num" id="stFunc">0</div><div class="lbl">Funcionários</div></div>
+      <div class="stat"><div class="num" id="stPonto">0</div><div class="lbl">Lançamentos</div></div>
+      <div class="stat"><div class="num" id="stEscala">6</div><div class="lbl">Escalas-modelo</div></div>
+      <div class="stat"><div class="num" id="stCheck">0%</div><div class="lbl">Checklist concluído</div></div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <h2>🧭 O que mudou com a EC 141/2026</h2>
+      <table>
+        <thead><tr><th>Item</th><th>Antes</th><th>16/12/2026</th><th>16/12/2027</th></tr></thead>
+        <tbody>
+          <tr><td>Jornada semanal</td><td>44h</td><td><strong>42h</strong> <span class="badge b-warn">transição</span></td><td><strong>40h</strong> <span class="badge b-ok">definitivo</span></td></tr>
+          <tr><td>Repouso semanal</td><td>1 dia</td><td colspan="2"><strong>2 dias</strong> (um preferencialmente aos domingos)</td></tr>
+          <tr><td>Divisor p/ cálculo</td><td>220</td><td><strong>210</strong></td><td><strong>200</strong></td></tr>
+          <tr><td>Escala 6x1</td><td>permitida</td><td colspan="2"><strong>em extinção</strong> a partir de 16/12/2026</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- FUNCIONÁRIOS -->
+  <section class="view" id="v-func">
+    <div class="card">
+      <h2>➕ Cadastrar funcionário</h2>
+      <div class="grid g2">
+        <div class="row"><label class="lbl">Nome completo</label><input class="input" id="fNome" placeholder="Ex.: Maria Souza"></div>
+        <div class="row"><label class="lbl">Setor</label><input class="input" id="fSetor" placeholder="Ex.: Vendas"></div>
+        <div class="row"><label class="lbl">Cargo</label><input class="input" id="fCargo" placeholder="Ex.: Vendedor(a)"></div>
+        <div class="row"><label class="lbl">Salário mensal (R$)</label><input class="input" id="fSalario" type="number" min="0" step="0.01" placeholder="0,00"></div>
+        <div class="row"><label class="lbl">Escala / jornada</label>
+          <select class="input" id="fEscala"></select>
+        </div>
+        <div class="row"><label class="lbl">Data admissão</label><input class="input" id="fAdm" type="date"></div>
+      </div>
+      <button class="btn btn-p" id="btnAddFunc">💾 Salvar funcionário</button>
+      <span id="editId" style="display:none"></span>
+      <button class="btn btn-o" id="btnCancelEdit" style="display:none;margin-left:8px">Cancelar edição</button>
+    </div>
+    <div class="card">
+      <h2>👥 Equipe (<span id="nFunc">0</span>)</h2>
+      <div class="twrap">
+        <table id="tblFunc"><thead><tr><th>Nome</th><th>Setor</th><th>Cargo</th><th>Salário</th><th>Escala</th><th>Carga</th><th>Ações</th></tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+  </section>
+
+  <!-- PONTO -->
+  <section class="view" id="v-ponto">
+    <div class="card">
+      <h2>⏱️ Lançar ponto</h2>
+      <div class="grid g2">
+        <div class="row"><label class="lbl">Funcionário</label><select class="input" id="pFunc"></select></div>
+        <div class="row"><label class="lbl">Data</label><input class="input" id="pData" type="date"></div>
+        <div class="row"><label class="lbl">Entrada (HH:MM)</label><input class="input" id="pEnt" type="time" value="08:00"></div>
+        <div class="row"><label class="lbl">Saída (HH:MM)</label><input class="input" id="pSai" type="time" value="17:00"></div>
+        <div class="row"><label class="lbl">Intervalo (min)</label><input class="input" id="pInt" type="number" min="0" value="60"></div>
+        <div class="row"><label class="lbl">Observação</label><input class="input" id="pObs" placeholder="Ex.: domingo, feriado, extra..."></div>
+      </div>
+      <button class="btn btn-p" id="btnAddPonto">➕ Registrar</button>
+    </div>
+    <div class="card">
+      <h2>📋 Lançamentos registrados</h2>
+      <div class="twrap">
+        <table id="tblPonto"><thead><tr><th>Data</th><th>Funcionário</th><th>Entrada</th><th>Saída</th><th>Intervalo</th><th>Trabalhado</th><th>Obs</th><th></th></tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+  </section>
+
+  <!-- SIMULADOR -->
+  <section class="view" id="v-sim">
+    <div class="card">
+      <h2>🧮 Impacto na folha e na hora extra</h2>
+      <div class="grid g2">
+        <div class="row"><label class="lbl">Nº de funcionários afetados</label><input class="input" id="sN" type="number" min="1" value="10"></div>
+        <div class="row"><label class="lbl">Salário médio (R$)</label><input class="input" id="sSal" type="number" min="0" step="0.01" value="2200"></div>
+        <div class="row"><label class="lbl">Carga atual (h/semana)</label><input class="input" id="sAtual" type="number" min="1" value="44"></div>
+        <div class="row"><label class="lbl">Carga alvo (h/semana)</label>
+          <select class="input" id="sAlvo"><option value="42">42h (16/12/2026)</option><option value="40" selected>40h (16/12/2027)</option></select>
+        </div>
+        <div class="row"><label class="lbl">Encargos sobre folha (%)</label><input class="input" id="sEnc" type="number" min="0" value="72"></div>
+        <div class="row"><label class="lbl">Horas extras estimadas/mês (opcional)</label><input class="input" id="sHE" type="number" min="0" value="0"></div>
+      </div>
+      <button class="btn btn-d" id="btnCalcSim">📐 Calcular cenário</button>
+    </div>
+    <div id="simRes"></div>
+  </section>
+
+  <!-- ADEQUAÇÃO -->
+  <section class="view" id="v-check">
+    <div class="card">
+      <h2>✅ Checklist de adequação à EC 141/2026</h2>
+      <p style="color:var(--muted);font-size:.86rem;margin-top:0">Marque os itens concluídos. O progresso fica salvo.</p>
+      <progress id="progCheck" value="0" max="100"></progress>
+      <div id="checkList" style="margin-top:12px"></div>
+    </div>
+  </section>
+
+  <!-- REGRAS & FERIADOS -->
+  <section class="view" id="v-legal">
+    <div class="card">
+      <h2>⚖️ Parâmetros legais vigentes (versionados)</h2>
+      <div class="twrap"><table id="tblRegras"><thead><tr><th>Chave</th><th>Valor</th><th>Vigência</th><th>Status</th><th>Fonte</th></tr></thead><tbody></tbody></table></div>
+    </div>
+    <div class="card">
+      <h2>🗓️ Feriados nacionais (sementes)</h2>
+      <div class="grid g4" id="feriadosGrid"></div>
+    </div>
+    <div class="card">
+      <h2>🗂️ Escalas-modelo</h2>
+      <div class="grid g3" id="escalasGrid"></div>
+    </div>
+  </section>
+
+  <!-- RELATÓRIO DE IMPACTO -->
+  <section class="view" id="v-rel">
+    <div class="grid g4" style="margin-bottom:14px">
+      <div class="stat"><div class="num" id="relTotalSal">R$ 0</div><div class="lbl">Folha total (salários)</div></div>
+      <div class="stat"><div class="num" id="relTotalHE">R$ 0</div><div class="lbl">Custo total H.E.</div></div>
+      <div class="stat"><div class="num" id="relHorasHE">0h00</div><div class="lbl">Horas extras apuradas</div></div>
+      <div class="stat"><div class="num" id="relTopFun">—</div><div class="lbl">Função que mais gera H.E.</div></div>
+    </div>
+    <div class="card">
+      <h2>💼 Valores a pagar por funcionário (mês)</h2>
+      <p style="color:var(--muted);font-size:.86rem;margin-top:0">Salário mensal + horas extras calculadas com o divisor vigente da carga do funcionário.</p>
+      <div class="twrap">
+        <table id="tblRelFunc"><thead><tr><th>Funcionário</th><th>Função</th><th>Salário</th><th>H.E.</th><th>Total</th></tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+    <div class="card">
+      <h2>🏆 Ranking de funções que mais geram hora extra</h2>
+      <div class="twrap">
+        <table id="tblRelCargo"><thead><tr><th>Função</th><th>Funcionários</th><th>Horas extras</th><th>Valor H.E.</th><th>% do total</th></tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+    <div class="card">
+      <h2>📋 Ações corretivas e de adequação</h2>
+      <div id="relAcoes"></div>
+    </div>
+  </section>
+
+  <!-- GLOSSÁRIO -->
+  <section class="view" id="v-gloss">
+    <div class="card">
+      <h2>📖 Glossário — entenda os termos da EC 141/2026</h2>
+      <p style="color:var(--muted);font-size:.86rem;margin-top:0">Digite para filtrar ou role a lista.</p>
+      <input class="input" id="glossBusca" placeholder="🔎 Buscar termo (ex.: divisor, escala, DSR...)" style="margin-bottom:14px">
+      <div class="grid g2" id="glossGrid"></div>
+    </div>
+  </section>
+</main>
+
+<footer>Ferramenta privada de apoio à gestão — não é sistema oficial e não substitui assessoria jurídica.<br>Brasil · EC 141/2026 · Decreto 13.173/2026</footer>
+
+<dialog id="dlgBackup"><div class="dlg-body">
+  <h2>💾 Backup de dados (JSON)</h2>
+  <p style="color:var(--muted);font-size:.86rem">Copie para salvar ou cole um backup abaixo e clique em Importar.</p>
+  <textarea class="input" id="backupArea" rows="8" style="font-family:Consolas,monospace;font-size:.75rem"></textarea>
+  <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+    <button class="btn btn-p" id="btnCopyBk">📋 Copiar</button>
+    <button class="btn btn-o" id="btnPasteBk">📥 Importar</button>
+    <button class="btn btn-o" id="btnCloseBk">Fechar</button>
+  </div>
+</div></dialog>
+
+<script>
+/* ============================================================
+ * CONTROLE DE JORNADA 5x2 — OFF-LINE (arquivo único)
+ * Sem login, sem Firebase. Dados no navegador + backup JSON.
+ * ============================================================ */
+
+/* ---------- Persistência segura (localStorage se liberado, senão memória) ---------- */
+const storage = (() => {
+  let ok = false;
+  try { window.localStorage.setItem('__t','1'); window.localStorage.removeItem('__t'); ok = true; } catch(e){ ok = false; }
+  const mem = {};
+  return {
+    ok,
+    get(k){ if(ok){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } } return mem[k] !== undefined ? mem[k] : null; },
+    set(k,v){ if(ok){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} } else { mem[k] = v; } },
+    del(k){ if(ok){ try{ localStorage.removeItem(k); }catch(e){} } else { delete mem[k]; } }
+  };
+})();
+
+/* ---------- Sementes ---------- */
+const REGRAS = [
+  { chave:'limite_semanal_horas', valor:'44h', vigencia:'até 15/12/2026', status:'vigente', fonte:'CLT art. 58' },
+  { chave:'limite_semanal_horas', valor:'42h', vigencia:'16/12/2026 a 15/12/2027', status:'vigente', fonte:'EC 141/2026 art. 6º' },
+  { chave:'limite_semanal_horas', valor:'40h', vigencia:'a partir de 16/12/2027', status:'vigente', fonte:'EC 141/2026, CF art. 7º XIII' },
+  { chave:'divisor_mensal', valor:'220', vigencia:'até 15/12/2026', status:'vigente', fonte:'CLT art. 64' },
+  { chave:'divisor_mensal', valor:'210', vigencia:'16/12/2026 a 15/12/2027', status:'vigente', fonte:'Decreto 13.173/2026' },
+  { chave:'divisor_mensal', valor:'200', vigencia:'a partir de 16/12/2027', status:'vigente', fonte:'Decreto 13.173/2026' },
+  { chave:'dias_repouso_semanal', valor:'1 dia', vigencia:'até 15/12/2026', status:'vigente', fonte:'CF art. 7º XV (red. anterior)' },
+  { chave:'dias_repouso_semanal', valor:'2 dias', vigencia:'a partir de 16/12/2026', status:'vigente', fonte:'EC 141/2026' },
+  { chave:'limite_diario', valor:'8h (480 min)', vigencia:'permanente', status:'vigente', fonte:'CF art. 7º XIII' },
+  { chave:'extensao_diaria_5x2', valor:'8h24 (504 min)', vigencia:'16/12/2026 a 15/12/2027', status:'a_confirmar', fonte:'EC 141/2026 art. 7º' },
+  { chave:'turno_revezamento', valor:'6h (360 min)', vigencia:'permanente', status:'vigente', fonte:'CF art. 7º XIV' },
+  { chave:'he_adicional', valor:'50%', vigencia:'permanente', status:'vigente', fonte:'CF art. 7º XVI' },
+  { chave:'he_domingo_feriado', valor:'100%', vigencia:'permanente', status:'a_confirmar', fonte:'Súmula 146 TST' },
+  { chave:'he_max_diaria', valor:'2h (120 min)', vigencia:'permanente', status:'vigente', fonte:'CLT art. 59' },
+  { chave:'noturno_inicio', valor:'22:00', vigencia:'permanente', status:'vigente', fonte:'CLT art. 73' },
+  { chave:'noturno_fim', valor:'05:00', vigencia:'permanente', status:'vigente', fonte:'CLT art. 73' },
+  { chave:'noturno_adicional', valor:'20%', vigencia:'permanente', status:'vigente', fonte:'CLT art. 73' },
+  { chave:'hora_noturna', valor:'52min30s', vigencia:'permanente', status:'vigente', fonte:'CLT art. 73 §1º' },
+  { chave:'interjornada', valor:'11h (660 min)', vigencia:'permanente', status:'vigente', fonte:'CLT art. 66' },
+  { chave:'tolerancia_marcacao', valor:'5 min', vigencia:'permanente', status:'vigente', fonte:'CLT art. 58 §1º' },
+  { chave:'tolerancia_diaria', valor:'10 min', vigencia:'permanente', status:'vigente', fonte:'CLT art. 58 §1º' },
+  { chave:'banco_individual', valor:'6 meses', vigencia:'permanente', status:'vigente', fonte:'CLT art. 59 §5º' },
+  { chave:'banco_coletivo', valor:'12 meses', vigencia:'permanente', status:'vigente', fonte:'CLT art. 59 §5º' },
+  { chave:'art8_teto_rgps', valor:'2,5× teto RGPS', vigencia:'a partir de 16/10/2026', status:'vigente', fonte:'EC 141/2026 art. 8º' }
+];
+
+const FERIADOS = [
+  { m:'Jan', dia:1, nome:'Confraternização Universal' }, { m:'Abr', dia:21, nome:'Tiradentes' },
+  { m:'Mai', dia:1, nome:'Dia do Trabalho' }, { m:'Set', dia:7, nome:'Independência' },
+  { m:'Out', dia:12, nome:'N. Sra. Aparecida' }, { m:'Nov', dia:2, nome:'Finados' },
+  { m:'Nov', dia:15, nome:'Proclamação da República' }, { m:'Nov', dia:20, nome:'Consciência Negra' },
+  { m:'Dez', dia:25, nome:'Natal' }
+];
+
+const ESCALAS = [
+  { id:'5x2_sabdom', nome:'5x2 fixa (sáb-dom)', carga:40, diario:'8h', obs:'5 dias × 8h. Folga sábado e domingo.' },
+  { id:'5x2_domseg', nome:'5x2 fixa (dom-seg)', carga:40, diario:'8h', obs:'Folga domingo + segunda (comércio).' },
+  { id:'5x2_flex', nome:'5x2 flexível (rodízio)', carga:40, diario:'8h', obs:'Repousos móveis — exige instrumento coletivo.' },
+  { id:'12x36', nome:'12x36', carga:42, diario:'12h', obs:'12h trabalhadas × 36h descanso. Divisor próprio 180.' },
+  { id:'turno6h', nome:'Turno ininterrupto 6h', carga:30, diario:'6h', obs:'6h diárias em turnos de revezamento.' },
+  { id:'6x1_legado', nome:'6x1 (legado)', carga:44, diario:'8h', obs:'Incompatível com a EC 141 a partir de 16/12/2026.' }
+];
+
+const SEEDS_CHECK = [
+  { tit:'Mapear jornadas e escalas atuais', desc:'Sem mapa não há como medir a distância para a 5x2.', lei:'EC arts. 2º e 6º' },
+  { tit:'Identificar quem trabalha 6 dias e quem já está em ≤ 40h', desc:'Todos ganham 2 repousos; salário não reduz.', lei:'EC art. 4º' },
+  { tit:'Revisar CCT/ACT incompatíveis', desc:'Cláusulas incompatíveis perdem efeito 2 meses após publicação.', lei:'EC art. 3º' },
+  { tit:'Definir política de folgas e negociar instrumento', desc:'Folga flexível exige acordo/convenção coletiva.', lei:'EC art. 7º §2º' },
+  { tit:'Atualizar divisor (220→210→200) e valor da hora extra', desc:'Sem atualizar, a folha paga hora extra errada.', lei:'Decreto 13.173/2026' },
+  { tit:'Garantir que nenhum salário/piso seja reduzido', desc:'Irredutibilidade salarial é regra expressa.', lei:'EC art. 2º' },
+  { tit:'Reorganizar escalas e prever cobertura/contratação', desc:'40h em 5 dias podem exigir ajuste de quadro.', lei:'EC art. 6º' },
+  { tit:'Atualizar contratos, aditivos e comunicados', desc:'Documente a nova jornada para evitar litígio.', lei:'CLT art. 468' },
+  { tit:'Revisar banco de horas (acordos e prazos)', desc:'Banco sem acordo escrito é passivo.', lei:'CLT art. 59 §5º' },
+  { tit:'Verificar enquadramento nível superior + 2,5× teto', desc:'Enquadrados saem do controle de jornada.', lei:'EC art. 8º' },
+  { tit:'Verificar regime especial da categoria', desc:'Portarias setoriais ainda serão editadas.', lei:'EC art. 7º §3º' },
+  { tit:'Treinar gestores e fluxo de autorização de extras', desc:'Hora extra tolerada gera passivo.', lei:'CLT art. 59' },
+  { tit:'Avaliar MEI/ME/EPP e acompanhar lei complementar', desc:'Medidas transitórias podem ser criadas.', lei:'EC art. 5º' },
+  { tit:'Contratos públicos: planejar aditamento', desc:'Aplicação após aditamento, prazo até 1 ano.', lei:'EC art. 9º' },
+  { tit:'Acompanhar STF e revisar parâmetros', desc:'Há discussão em curso; regras podem mudar.', lei:'EC art. 7º [A CONFIRMAR]' }
+];
+
+/* ---------- Glossário (sementes) ---------- */
+const GLOSSARIO = [
+  { termo:'EC 141/2026', cat:'Legislação', definicao:'Emenda Constitucional que reduz a jornada semanal de 44h para 40h (em duas etapas) e cria o repouso semanal de 2 dias, extinguindo a escala 6x1.' },
+  { termo:'Escala-modelo', cat:'Conceito', definicao:'Padrão de jornada pré-cadastrado no app (ex.: 5x2, 12x36, turno 6h). Ao cadastrar um funcionário, você escolhe uma escala pronta em vez de montar os horários manualmente.' },
+  { termo:'Divisor para cálculo', cat:'Cálculo', definicao:'Número usado para achar o valor da hora: salário dividido pelo divisor. 220 = jornada de 44h, 210 = 42h, 200 = 40h. Quanto menor o divisor, maior o valor da hora e, por isso, maior o custo da hora extra.' },
+  { termo:'Data de admissão', cat:'Cadastro', definicao:'Âncora temporal do funcionário no app. Serve para calcular tempo de casa (férias, 13º), definir qual versão da lei se aplicava na data de cada registro e rastrear direitos adquiridos.' },
+  { termo:'DSR', cat:'Conceito', definicao:'Descanso Semanal Remunerado — o repouso pago ao trabalhador. Pela EC 141/2026, passa de 1 para 2 dias de repouso semanal a partir de 16/12/2026.' },
+  { termo:'Repouso semanal de 2 dias', cat:'EC 141', definicao:'Novo direito criado pela EC 141/2026: a partir de 16/12/2026, todo trabalhador tem direito a 2 dias de repouso semanal, um deles preferencialmente aos domingos.' },
+  { termo:'Hora extra', cat:'Cálculo', definicao:'Hora trabalhada além da jornada contratual. Pagamento mínimo de 50% a mais que a hora normal (100% em domingos e feriados, conforme entendimento consolidado).' },
+  { termo:'Hora noturna', cat:'Cálculo', definicao:'Trabalho entre 22h e 5h. A hora noturna tem duração reduzida de 52min30s e adicional de 20% sobre a diurna.' },
+  { termo:'Interjornada', cat:'Conceito', definicao:'Intervalo mínimo de 11 horas entre o fim de uma jornada e o início da seguinte. Garante descanso entre dias de trabalho.' },
+  { termo:'Banco de horas', cat:'Conceito', definicao:'Sistema que compensa as horas extras com folgas em outro dia, em vez de pagá-las. Prazo de compensação: 6 meses (individual) ou 12 meses (coletivo).' },
+  { termo:'Jornada 5x2', cat:'Escala', definicao:'5 dias de trabalho e 2 dias de repouso. É o modelo central da EC 141/2026, que extingue a escala 6x1 a partir de 16/12/2026.' },
+  { termo:'Jornada 12x36', cat:'Escala', definicao:'12 horas de trabalho seguidas de 36 horas de descanso. Usada em vigilância, saúde e serviços essenciais. Tem divisor próprio de 180.' },
+  { termo:'Turno de revezamento', cat:'Escala', definicao:'Trabalho em turnos que se alternam (manhã, tarde, noite). Limite de 6 horas diárias, salvo negociação coletiva.' },
+  { termo:'Tolerância de marcação', cat:'Ponto', definicao:'Tolerância de até 5 minutos por marcação, até o máximo de 10 minutos diários, descontados da jornada (CLT art. 58 §1º).' },
+  { termo:'Adicional noturno', cat:'Cálculo', definicao:'Acréscimo de 20% sobre a hora diurna para trabalho noturno, além da hora reduzida de 52min30s.' },
+  { termo:'2,5× teto RGPS', cat:'EC 141', definicao:'Enquadramento de nível superior com vencimento igual ou superior a 2,5 vezes o teto do INSS deixa de ter controle de jornada (EC 141/2026 art. 8º).' }
+];
+
+/* ---------- Estado ---------- */
+let db = storage.get('jornada5x2_db') || null;
+if (!db || !db.funcionarios) {
+  db = {
+    funcionarios: [],        // {id,nome,setor,cargo,salario,escalaId,carga,adm}
+    lancamentos: [],         // {id,funcId,data,entrada,saida,intervalo,obs}
+    checklist: SEEDS_CHECK.map(c => ({ ...c, done:false }))
+  };
+  salvar();
+}
+function salvar(){ storage.set('jornada5x2_db', db); }
+
+/* ---------- Helpers ---------- */
+const $ = id => document.getElementById(id);
+function esc(s){ return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmtBRL(v){ return Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:2}); }
+function fmtData(iso){ if(!iso) return '—'; const [a,m,d] = iso.split('-'); return d+'/'+m+'/'+a; }
+function hojeIso(){ const d=new Date(); const p=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
+function toast(msg,tipo='info'){ const t=document.createElement('div'); t.className='toast '+tipo; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),3500); }
+function cargaPorEscala(id){ const e=ESCALAS.find(x=>x.id===id); return e ? e.carga : 40; }
+function nomeEscala(id){ const e=ESCALAS.find(x=>x.id===id); return e ? e.nome : '—'; }
+
+/* ---------- Tema ---------- */
+function tema(){ return document.documentElement.getAttribute('data-tema'); }
+function aplTema(t){ document.documentElement.setAttribute('data-tema',t); $('btnTema').textContent = t==='claro' ? '🌙' : '☀️'; storage.set('jornada5x2_tema',t); }
+$('btnTema').addEventListener('click', ()=> aplTema(tema()==='claro'?'escuro':'claro'));
+const temaSalvo = storage.get('jornada5x2_tema');
+if (temaSalvo) aplTema(temaSalvo);
+else aplTema(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'escuro' : 'claro');
+
+/* ---------- Navegação ---------- */
+$('tabs').addEventListener('click', e => {
+  const b = e.target.closest('button[data-v]'); if(!b) return;
+  document.querySelectorAll('#tabs button').forEach(x=>x.classList.remove('ativo'));
+  b.classList.add('ativo');
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('ativa'));
+  $('v-'+b.dataset.v).classList.add('ativa');
+  renderAll();
+});
+
+/* ---------- Countdown ---------- */
+function countdown(){
+  const agora = new Date();
+  const alvos = [['cd26', new Date('2026-12-16T00:00:00-04:00')], ['cd27', new Date('2027-12-16T00:00:00-04:00')]];
+  for (const [id, d] of alvos){
+    const diff = d - agora; const el = $(id); if(!el) continue;
+    if (diff <= 0) el.textContent = 'Em vigor ✅';
+    else { const dias=Math.floor(diff/864e5), h=Math.floor(diff%864e5/36e5), m=Math.floor(diff%36e5/6e4); el.textContent = dias+'d '+h+'h '+m+'min'; }
+  }
+}
+setInterval(countdown, 60000); countdown();
+
+/* ---------- Funções de view ---------- */
+function renderFuncSelect(){
+  const sel = $('pFunc'); const val = sel.value; sel.innerHTML='';
+  if (!db.funcionarios.length){ sel.innerHTML = '<option value="">Nenhum funcionário cadastrado</option>'; return; }
+  db.funcionarios.forEach(f => { const o=document.createElement('option'); o.value=f.id; o.textContent=f.nome+' — '+f.setor; sel.appendChild(o); });
+  if (val && db.funcionarios.some(f=>f.id===val)) sel.value=val;
+}
+function renderEscalaSelect(){
+  const sel = $('fEscala'); sel.innerHTML='';
+  ESCALAS.forEach(e=>{ const o=document.createElement('option'); o.value=e.id; o.textContent=e.nome+' ('+e.carga+'h)'; sel.appendChild(o); });
+}
+function renderDashboard(){
+  $('stFunc').textContent = db.funcionarios.length;
+  $('stPonto').textContent = db.lancamentos.length;
+  const done = db.checklist.filter(c=>c.done).length;
+  $('stCheck').textContent = db.checklist.length ? Math.round(done/db.checklist.length*100)+'%' : '0%';
+}
+function renderFuncs(){
+  $('nFunc').textContent = db.funcionarios.length;
+  const tb = $('tblFunc').querySelector('tbody'); tb.innerHTML='';
+  if (!db.funcionarios.length){ tb.innerHTML='<tr><td colspan="7" style="color:var(--muted)">Nenhum funcionário. Cadastre acima.</td></tr>'; return; }
+  db.funcionarios.forEach(f => {
+    const tr=document.createElement('tr');
+    tr.innerHTML = '<td><strong>'+esc(f.nome)+'</strong></td><td>'+esc(f.setor||'—')+'</td><td>'+esc(f.cargo||'—')+'</td>'+
+      '<td>'+fmtBRL(f.salario)+'</td><td>'+esc(nomeEscala(f.escalaId))+'</td><td><span class="badge b-neutral">'+f.carga+'h/sem</span></td>'+
+      '<td style="white-space:nowrap"><button class="btn btn-o btn-sm" data-ed="'+f.id+'">✏️</button> <button class="btn btn-danger btn-sm" data-del="'+f.id+'">🗑️</button></td>';
+    tb.appendChild(tr);
+  });
+  tb.querySelectorAll('[data-ed]').forEach(b=>b.addEventListener('click',()=>editFunc(b.dataset.ed)));
+  tb.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',()=>delFunc(b.dataset.ed)));
+}
+function editFunc(id){
+  const f = db.funcionarios.find(x=>x.id===id); if(!f) return;
+  $('fNome').value=f.nome; $('fSetor').value=f.setor||''; $('fCargo').value=f.cargo||''; $('fSalario').value=f.salario;
+  $('fEscala').value=f.escalaId; $('fAdm').value=f.adm||''; $('editId').textContent=id;
+  $('btnAddFunc').textContent='💾 Atualizar'; $('btnCancelEdit').style.display='inline-flex';
+  $('v-func').scrollIntoView({behavior:'smooth'});
+}
+function delFunc(id){
+  if(!confirm('Remover este funcionário?')) return;
+  db.funcionarios = db.funcionarios.filter(f=>f.id!==id);
+  db.lancamentos = db.lancamentos.filter(l=>l.funcId!==id);
+  salvar(); renderAll(); toast('Funcionário removido.','info');
+}
+$('btnAddFunc').addEventListener('click', ()=>{
+  const nome=$('fNome').value.trim(); const salario=parseFloat($('fSalario').value);
+  if(!nome){ toast('Informe o nome.','erro'); return; }
+  if(isNaN(salario)||salario<0){ toast('Salário inválido.','erro'); return; }
+  const escalaId=$('fEscala').value;
+  const editId=$('editId').textContent;
+  if(editId){
+    const f=db.funcionarios.find(x=>x.id===editId); if(!f) return;
+    Object.assign(f,{nome,setor:$('fSetor').value.trim(),cargo:$('fCargo').value.trim(),salario,escalaId,carga:cargaPorEscala(escalaId),adm:$('fAdm').value});
+    toast('Funcionário atualizado.','ok');
+  } else {
+    db.funcionarios.push({ id:'f'+Date.now(), nome, setor:$('fSetor').value.trim(), cargo:$('fCargo').value.trim(), salario, escalaId, carga:cargaPorEscala(escalaId), adm:$('fAdm').value });
+    toast('Funcionário adicionado.','ok');
+  }
+  // limpar
+  $('fNome').value=''; $('fSetor').value=''; $('fCargo').value=''; $('fSalario').value=''; $('fAdm').value='';
+  $('editId').textContent=''; $('btnAddFunc').textContent='💾 Salvar funcionário'; $('btnCancelEdit').style.display='none';
+  salvar(); renderAll();
+});
+$('btnCancelEdit').addEventListener('click', ()=>{
+  $('fNome').value=''; $('fSetor').value=''; $('fCargo').value=''; $('fSalario').value=''; $('fAdm').value='';
+  $('editId').textContent=''; $('btnAddFunc').textContent='💾 Salvar funcionário'; $('btnCancelEdit').style.display='none';
+});
+
+function calcTrabalho(ent, sai, intervalo){
+  const h0=ent.split(':').map(Number), h1=sai.split(':').map(Number);
+  let min = (h1[0]*60+h1[1]) - (h0[0]*60+h0[1]);
+  if (min < 0) min += 1440; // virou o dia
+  min -= Number(intervalo||0);
+  return Math.max(0, min);
+}
+function fmtMin(min){ const h=Math.floor(min/60), m=min%60; return h+'h'+String(m).padStart(2,'0'); }
+
+function renderPonto(){
+  renderFuncSelect();
+  if(!$('pData').value) $('pData').value = hojeIso();
+  const tb=$('tblPonto').querySelector('tbody'); tb.innerHTML='';
+  if(!db.lancamentos.length){ tb.innerHTML='<tr><td colspan="8" style="color:var(--muted)">Nenhum lançamento.</td></tr>'; return; }
+  const lista = db.lancamentos.slice().sort((a,b)=> String(b.data+a.entrada).localeCompare(String(a.data+a.entrada)) );
+  lista.forEach(l=>{
+    const f=db.funcionarios.find(x=>x.id===l.funcId);
+    const trab=calcTrabalho(l.entrada,l.saida,l.intervalo);
+    let extra='';
+    if(f){ const limite=f.carga/5*60; const dif=trab-limite;
+      if(dif>1) extra='<span class="badge b-warn">+'+fmtMin(dif)+' extra</span>';
+      else if(dif<0) extra='<span class="badge b-neutral">-'+fmtMin(-dif)+'</span>';
+      else extra='<span class="badge b-ok">OK</span>'; }
+    const tr=document.createElement('tr');
+    tr.innerHTML='<td>'+fmtData(l.data)+'</td><td>'+(f?esc(f.nome):'—')+'</td><td>'+esc(l.entrada)+'</td><td>'+esc(l.saida)+'</td><td>'+esc(l.intervalo)+'min</td><td><strong>'+fmtMin(trab)+'</strong> '+extra+'</td><td style="font-size:.78rem;color:var(--muted)">'+esc(l.obs||'')+'</td><td><button class="btn btn-danger btn-sm" data-dp="'+l.id+'">🗑️</button></td>';
+    tb.appendChild(tr);
+  });
+  tb.querySelectorAll('[data-dp]').forEach(b=>b.addEventListener('click',()=>{ db.lancamentos=db.lancamentos.filter(x=>x.id!==b.dataset.dp); salvar(); renderPonto(); }));
+}
+$('btnAddPonto').addEventListener('click', ()=>{
+  const funcId=$('pFunc').value, data=$('pData').value, ent=$('pEnt').value, sai=$('pSai').value, intervalo=Number($('pInt').value||0);
+  if(!funcId){ toast('Selecione um funcionário.','erro'); return; }
+  if(!ent || !sai){ toast('Informe entrada e saída.','erro'); return; }
+  db.lancamentos.push({ id:'p'+Date.now(), funcId, data, entrada:ent, saida:sai, intervalo, obs:$('pObs').value.trim() });
+  salvar(); renderPonto(); toast('Ponto registrado.','ok');
+  $('pObs').value='';
+});
+
+/* ---------- Simulador ---------- */
+function divisorPara(carga){ return carga===42?210 : carga===40?200 : 220; }
+$('btnCalcSim').addEventListener('click', ()=>{
+  const n=Number($('sN').value)||1, sal=Number($('sSal').value)||0, atual=Number($('sAtual').value)||44, alvo=Number($('sAlvo').value)||40, enc=Number($('sEnc').value)||72, he=Number($('sHE').value)||0;
+  const divAtual = atual===40?200 : atual===42?210 : 220;
+  const divAlvo = divisorPara(alvo);
+  const hAtual = sal/divAtual, hAlvo = sal/divAlvo;
+  const diffPct = (hAlvo/hAtual-1)*100;
+  const custoMensalMedio = sal*(1+enc/100);
+  const horasPerdidasSem = Math.max(0,(atual-alvo))*n;
+  const necessarios = Math.ceil(horasPerdidasSem/alvo);
+  const custoNovos = necessarios*custoMensalMedio;
+  const heAtual50 = hAlvo*1.5, heAtual100 = hAlvo*2;
+  const heAnterior50 = hAtual*1.5;
+  const gastoHE = he*(heAtual50-heAnterior50);
+  $('simRes').innerHTML =
+    '<div class="grid g2">'+
+    '<div class="card"><h2>💵 Valor da hora</h2><table>'+
+    '<tr><td>Salário/hora atual (divisor '+divAtual+')</td><td><strong>'+fmtBRL(hAtual)+'</strong></td></tr>'+
+    '<tr><td>Salário/hora novo (divisor '+divAlvo+')</td><td><strong style="color:var(--destaque)">'+fmtBRL(hAlvo)+'</strong></td></tr>'+
+    '<tr><td>Aumento no valor da hora</td><td>'+(diffPct>=0?'<span class="badge b-warn">+'+diffPct.toFixed(2)+'%</span>':'<span class="badge b-ok">'+diffPct.toFixed(2)+'%</span>')+'</td></tr>'+
+    '<tr><td>Hora extra 50% (novo)</td><td>'+fmtBRL(heAtual50)+'</td></tr>'+
+    '<tr><td>Hora extra 100% dom/feriado (novo)</td><td>'+fmtBRL(heAtual100)+'</td></tr>'+
+    '</table></div>'+
+    '<div class="card"><h2>👷 Cobertura da redução de jornada</h2><table>'+
+    '<tr><td>Jornada</td><td>'+atual+'h → <strong>'+alvo+'h</strong></td></tr>'+
+    '<tr><td>Horas perdidas/semana (time)</td><td><strong>'+horasPerdidasSem+'h</strong></td></tr>'+
+    '<tr><td>Funcionários necessários p/ cobrir</td><td><strong>'+necessarios+'</strong></td></tr>'+
+    '<tr><td>Custo mensal médio/func. (com '+enc+'% encargos)</td><td>'+fmtBRL(custoMensalMedio)+'</td></tr>'+
+    '<tr><td><strong>Custo estimado de novas contratações/mês</strong></td><td><strong style="color:var(--perigo)">'+fmtBRL(custoNovos)+'</strong></td></tr>'+
+    '</table></div>'+
+    '</div>'+
+    (he>0 ? '<div class="card"><h2>⏰ Impacto nas horas extras</h2><p style="color:var(--suave);font-size:.9rem;margin:0">Com '+he+' horas extras/mês pagas a 50% e o novo divisor, o custo adicional estimado é de <strong>'+fmtBRL(gastoHE)+'/mês</strong> em relação ao divisor anterior — apenas pelo aumento do valor da hora.</p></div>' : '');
+});
+
+/* ---------- Checklist ---------- */
+function renderCheck(){
+  const list=$('checkList'); list.innerHTML='';
+  let done=0;
+  db.checklist.forEach((c,i)=>{
+    const div=document.createElement('div');
+    div.className='check-item'+(c.done?' done':'');
+    div.innerHTML='<input type="checkbox" '+(c.done?'checked':'')+' data-i="'+i+'">'+
+      '<div><div class="tit">'+esc(c.tit)+'</div><div class="desc">'+esc(c.desc)+'</div><div class="lei">📖 '+esc(c.lei)+'</div></div>';
+    list.appendChild(div);
+    if(c.done) done++;
+  });
+  const pct = db.checklist.length ? Math.round(done/db.checklist.length*100) : 0;
+  $('progCheck').value = pct;
+  $('progCheck').textContent = pct+'%';
+  list.querySelectorAll('input').forEach(inp=>inp.addEventListener('change',()=>{
+    db.checklist[Number(inp.dataset.i)].done = inp.checked;
+    salvar(); renderCheck();
+  }));
+}
+
+/* ---------- Regras & Feriados ---------- */
+function renderLegal(){
+  const tb=$('tblRegras').querySelector('tbody'); tb.innerHTML='';
+  REGRAS.forEach(r=>{
+    const badge = r.status==='a_confirmar' ? '<span class="badge b-warn">A CONFIRMAR</span>' : '<span class="badge b-ok">VIGENTE</span>';
+    const tr=document.createElement('tr');
+    tr.innerHTML='<td><strong>'+esc(r.chave)+'</strong></td><td>'+esc(r.valor)+'</td><td>'+esc(r.vigencia)+'</td><td>'+badge+'</td><td style="font-size:.78rem;color:var(--muted)">'+esc(r.fonte)+'</td>';
+    tb.appendChild(tr);
+  });
+  const fg=$('feriadosGrid'); fg.innerHTML='';
+  FERIADOS.forEach(f=>{ fg.innerHTML+='<div class="esc-card"><h4>'+esc(f.nome)+'</h4><div class="meta">'+f.dia+' '+f.m+' · Nacional</div></div>'; });
+  const eg=$('escalasGrid'); eg.innerHTML='';
+  ESCALAS.forEach(e=>{ eg.innerHTML+='<div class="esc-card"><h4>'+esc(e.nome)+'</h4><div class="meta">'+e.carga+'h/sem · '+esc(e.diario)+'</div><div class="meta" style="margin-top:4px">'+esc(e.obs)+'</div></div>'; });
+}
+
+/* ---------- Glossário ---------- */
+function renderGlossario(){
+  const termo = ($('glossBusca').value || '').toLowerCase();
+  const lista = GLOSSARIO.filter(g => !termo || g.termo.toLowerCase().includes(termo) || g.definicao.toLowerCase().includes(termo) || g.cat.toLowerCase().includes(termo));
+  const grid = $('glossGrid'); grid.innerHTML='';
+  if(!lista.length){ grid.innerHTML='<div class="esc-card" style="grid-column:1/-1">Nenhum termo encontrado para "'+esc($('glossBusca').value)+'".</div>'; return; }
+  lista.forEach(g=>{
+    const d=document.createElement('div');
+    d.className='esc-card';
+    d.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><h4>'+esc(g.termo)+'</h4><span class="badge b-neutral">'+esc(g.cat)+'</span></div><div class="meta" style="margin-top:6px">'+esc(g.definicao)+'</div>';
+    grid.appendChild(d);
+  });
+}
+
+/* ---------- Relatório de impacto ---------- */
+function renderRelatorio(){
+  const resumoFunc = db.funcionarios.map(f => {
+    const lan = db.lancamentos.filter(l => l.funcId === f.id);
+    let extraMin = 0;
+    lan.forEach(l => {
+      const trab = calcTrabalho(l.entrada, l.saida, l.intervalo);
+      const limite = f.carga/5*60;
+      const extra = trab - limite;
+      if(extra > 1) extraMin += extra;
+    });
+    const divisor = divisorPara(f.carga);
+    const hora = f.salario / divisor;
+    const valHE = (extraMin/60) * hora * 1.5;
+    return { f, extraMin, valHE, total: f.salario + valHE };
+  });
+
+  const totalSal = resumoFunc.reduce((s,r)=>s+r.f.salario,0);
+  const totalHE = resumoFunc.reduce((s,r)=>s+r.valHE,0);
+  const totalExtraMin = resumoFunc.reduce((s,r)=>s+r.extraMin,0);
+
+  $('relTotalSal').textContent = fmtBRL(totalSal);
+  $('relTotalHE').textContent = fmtBRL(totalHE);
+  $('relHorasHE').textContent = fmtMin(totalExtraMin);
+
+  const tb1 = $('tblRelFunc').querySelector('tbody'); tb1.innerHTML='';
+  if(!resumoFunc.length){ tb1.innerHTML='<tr><td colspan="5" style="color:var(--muted)">Nenhum funcionário cadastrado.</td></tr>'; }
+  resumoFunc.slice().sort((a,b)=>b.total-a.total).forEach(r=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML='<td><strong>'+esc(r.f.nome)+'</strong></td><td>'+esc(r.f.cargo||'—')+'</td><td>'+fmtBRL(r.f.salario)+'</td>'+
+      '<td>'+fmtMin(r.extraMin)+' · '+fmtBRL(r.valHE)+'</td><td><strong>'+fmtBRL(r.total)+'</strong></td>';
+    tb1.appendChild(tr);
+  });
+
+  const porCargo = {};
+  resumoFunc.forEach(r => {
+    const c = r.f.cargo || 'Sem função';
+    if(!porCargo[c]) porCargo[c] = { cargo:c, n:0, extraMin:0, valHE:0 };
+    porCargo[c].n++; porCargo[c].extraMin += r.extraMin; porCargo[c].valHE += r.valHE;
+  });
+  const listCargo = Object.values(porCargo).sort((a,b)=>b.valHE-a.valHE);
+  const tb2 = $('tblRelCargo').querySelector('tbody'); tb2.innerHTML='';
+  if(!listCargo.length){ tb2.innerHTML='<tr><td colspan="5" style="color:var(--muted)">Sem lançamentos apurados.</td></tr>'; }
+  listCargo.forEach(c=>{
+    const pct = totalHE>0 ? (c.valHE/totalHE*100) : 0;
+    const tr=document.createElement('tr');
+    tr.innerHTML='<td><strong>'+esc(c.cargo)+'</strong></td><td>'+c.n+'</td><td>'+fmtMin(c.extraMin)+'</td><td>'+fmtBRL(c.valHE)+'</td><td>'+pct.toFixed(1)+'%</td>';
+    tb2.appendChild(tr);
+  });
+  $('relTopFun').textContent = listCargo.length ? listCargo[0].cargo : '—';
+
+  const acoes = $('relAcoes'); acoes.innerHTML='';
+  const sugs = [];
+  if (listCargo.length && totalExtraMin > 0){
+    const topo = listCargo[0];
+    sugs.push('🔴 A função <strong>'+esc(topo.cargo)+'</strong> concentra '+fmtMin(topo.extraMin)+' de hora extra ('+fmtBRL(topo.valHE)+'). Avalie redistribuir carga, criar banco de horas ou contratar.');
+  }
+  if (totalHE>0 && listCargo.length>=2){
+    const top3 = listCargo.slice(0,3).reduce((s,c)=>s+c.valHE,0);
+    const pctTop3 = (top3/totalHE*100);
+    if (pctTop3>60) sugs.push('🟠 As 3 funções do topo respondem por '+pctTop3.toFixed(0)+'% do custo de H.E. Foque a adequação nelas primeiro.');
+  }
+  const funcComHE = resumoFunc.filter(r=>r.extraMin>0);
+  if (funcComHE.length){
+    const media = totalExtraMin/funcComHE.length;
+    const acima = funcComHE.filter(r=>r.extraMin > media*1.5);
+    if (acima.length) sugs.push('🟡 '+acima.length+' funcionário(s) têm H.E. acima da média. Verifique jornada real, intervalo e autorização de extras.');
+  }
+  if (totalExtraMin===0) sugs.push('🟢 Nenhuma hora extra apurada nos lançamentos atuais. Ótimo sinal de que a escala está sob controle.');
+  sugs.push('📌 Lembrete: a partir de 16/12/2026 o divisor muda (220→210) e, em 16/12/2027, (210→200). A hora extra fica mais cara sem nenhuma nova contratação — revise no Simulador.');
+  acoes.innerHTML = sugs.map(s=>'<div class="aviso" style="margin-bottom:8px">'+s+'</div>').join('');
+}
+
+/* ---------- Backup ---------- */
+$('btnExport').addEventListener('click', ()=>{ $('backupArea').value = JSON.stringify(db, null, 2); $('dlgBackup').showModal(); });
+$('btnCloseBk').addEventListener('click', ()=> $('dlgBackup').close());
+$('btnCopyBk').addEventListener('click', async ()=>{
+  try { await navigator.clipboard.writeText($('backupArea').value); toast('Backup copiado.','ok'); }
+  catch(e){ $('backupArea').select(); document.execCommand('copy'); toast('Backup copiado.','ok'); }
+});
+$('btnPasteBk').addEventListener('click', ()=>{
+  try {
+    const d = JSON.parse($('backupArea').value);
+    if(!d.funcionarios || !d.checklist) throw new Error('formato inválido');
+    db = { funcionarios:d.funcionarios, lancamentos:d.lancamentos||[], checklist:d.checklist };
+    salvar(); renderAll(); $('dlgBackup').close(); toast('Backup importado com sucesso.','ok');
+  } catch(e){ toast('JSON inválido: '+e.message,'erro'); }
+});
+
+/* ---------- Render geral ---------- */
+function renderAll(){
+  countdown(); renderDashboard(); renderFuncs(); renderPonto(); renderCheck(); renderLegal(); renderRelatorio(); renderGlossario();
+}
+// inicial
+renderEscalaSelect();
+renderAll();
+$('glossBusca').addEventListener('input', renderGlossario);
+</script>
+</body>
+</html>
